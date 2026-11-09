@@ -23,3 +23,8 @@ npm test                 # ทดสอบ API
 - OTP ส่งทางอีเมลเท่านั้น (เบอร์โทรเก็บเป็นข้อมูลติดต่อ) — SMS มีค่าใช้จ่าย
 - "ผู้ช่วยกติกา" เป็นระบบกฎ (rule engine) ไม่ใช่โมเดล AI
 - ผู้ช่วย/ผู้เล่นเข้าด้วยไอดีโดยไม่มีรหัสผ่าน (จำกัดจำนวนครั้งที่ลองแล้ว) — อย่าแชร์ไอดีนอกทีม
+
+## ส่งอีเมล OTP ฟรีผ่าน Gmail (ไม่ต้องยืนยันเบอร์/ไม่ต้องมีโดเมน)
+1. ไป script.google.com → โครงการใหม่ → วางโค้ดจาก `docs/gmail-relay.gs` แล้วแก้ `SECRET`
+2. Deploy → New deployment → ประเภท Web app → Execute as: **Me**, Who has access: **Anyone** → Deploy → อนุญาตสิทธิ์ → คัดลอก Web app URL
+3. ใน Vercel ตั้ง `APPS_SCRIPT_URL` = URL นั้น และ `APPS_SCRIPT_KEY` = ค่า SECRET เดียวกัน

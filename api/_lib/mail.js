@@ -27,6 +27,17 @@ export async function sendOtp(to, code) {
     if (!r.ok) throw fail(502, 'mail_failed', { detail: 'resend ' + r.status });
     return;
   }
+  if (process.env.APPS_SCRIPT_URL && process.env.APPS_SCRIPT_KEY) {
+    // Free relay: a Google Apps Script web app that sends through the owner's Gmail (see README).
+    const r = await fetch(process.env.APPS_SCRIPT_URL, {
+      method: 'POST', redirect: 'follow', headers: { 'content-type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ key: process.env.APPS_SCRIPT_KEY, to, subject, html, name })
+    });
+    const txt = await r.text();
+    let ok = false; try { ok = JSON.parse(txt).ok === true; } catch { /* */ }
+    if (!r.ok || !ok) throw fail(502, 'mail_failed', { detail: 'apps-script ' + r.status });
+    return;
+  }
   if (process.env.MAIL_PROVIDER === 'console' && process.env.NODE_ENV !== 'production') {
     outbox.push({ to, code, at: Date.now() });
     console.log(`[mail:dev] OTP for ${to}: ${code}`);
