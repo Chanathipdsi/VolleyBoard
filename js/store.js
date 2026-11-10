@@ -17,7 +17,7 @@ const ERR = {
   mail_failed: 'ส่งอีเมลไม่สำเร็จ ลองใหม่อีกครั้ง', db_not_configured: 'ระบบยังไม่ได้เชื่อมต่อฐานข้อมูล', secret_not_configured: 'ระบบยังตั้งค่าไม่ครบ (SESSION_SECRET)',
   confirm_mismatch: 'ไอดีทีมที่พิมพ์ยืนยันไม่ตรง', conflict: 'ข้อมูลถูกแก้ไขโดยผู้อื่นพร้อมกัน', server_error: 'ระบบขัดข้อง ลองใหม่อีกครั้ง', network: 'เชื่อมต่อเครือข่ายไม่ได้', too_large: 'ข้อมูลใหญ่เกินไป'
 };
-export const errText = (code) => t(ERR[code] || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+export const errText = (code) => (ERR[code] ? t(ERR[code]) : t('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง') + (code ? ' (' + code + ')' : ''));
 
 export async function api(method, path, body, opts) {
   try {

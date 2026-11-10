@@ -343,7 +343,11 @@ export async function handle(req, res) {
     const method = req.method;
     if (method !== 'GET' && method !== 'HEAD') {
       const origin = req.headers.origin;
-      if (origin) { let h = ''; try { h = new URL(origin).host; } catch { /* */ } if (h !== req.headers.host) throw fail(403, 'bad_origin'); }
+      if (origin) {
+        let h = ''; try { h = new URL(origin).host; } catch { /* */ }
+        const ok = new Set([req.headers.host, String(req.headers['x-forwarded-host'] || '').split(',')[0].trim(), process.env.VERCEL_PROJECT_PRODUCTION_URL, process.env.VERCEL_URL].filter(Boolean));
+        if (!ok.has(h)) { console.error('bad_origin', h, [...ok].join('|')); throw fail(403, 'bad_origin'); }
+      }
     }
     let mt;
     if (path === '/health') return send(res, 200, { ok: true });
