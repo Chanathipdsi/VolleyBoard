@@ -2,6 +2,7 @@ import { t } from '../i18n.js';
 import { esc, uid, todayIso, sortBy } from '../util.js';
 import { S, UI, can, doc, commit, players, byId, shortName, toast, DEFAULTS } from '../store.js';
 import { ico, openDlg, calendar, calState, fmtDate, timeLabel } from '../ui.js';
+import { posLabel } from '../rules.js';
 import { WIN_KINDS, LOSE_KINDS, KIND_LABEL, summarize, sumObj, aggregate } from '../stats.js';
 import { hbars, momentumChart } from '../charts.js';
 
@@ -75,7 +76,7 @@ function liveView() {
 <div class="row" style="flex-wrap:nowrap"><div class="score us"><span>${t('ทีมเรา')}</span><b>${live.a}</b></div><div class="score opp"><span>${t('คู่แข่ง')}</span><b>${live.b}</b></div></div>
 ${live.sets.length ? `<div class="chips">${live.sets.map((s, i) => `<span class="pill" style="background:${s.a > s.b ? 'var(--ok)' : 'var(--warn)'}">${t('เซ็ต {n}', { n: i + 1 })}: ${s.a}–${s.b}</span>`).join('')}</div>` : ''}
 <div class="chips"><button class="btn sm" data-act="liveUndo" ${live.log.length ? '' : 'disabled'}>${ico('undo', 16)} ${t('ย้อนกลับ')}</button><button class="btn sm" data-act="liveTo" ${c.to >= 2 ? 'disabled' : ''}>${t('เวลานอก')} (${c.to}/2)</button><button class="btn sm" data-act="liveSub" ${c.sub >= 6 ? 'disabled' : ''}>${t('เปลี่ยนตัว')} (${c.sub}/6)</button><button class="btn sm" data-act="liveEndSet">${t('จบเซ็ตนี้')}</button><button class="btn sm main" data-act="liveFinish">${t('จบแมตช์และบันทึก')}</button><button class="btn sm danger" data-act="liveCancel">${t('ยกเลิกเกมสด')}</button></div></section>
-<section class="card"><h2>${t('1) เลือกผู้เล่นที่เกี่ยวข้องกับแต้ม')}</h2><div class="pchips" role="group" aria-label="${t('ผู้เล่น')}">${roster.map((p) => `<button class="pchip" data-fk="pc${p.id}" data-act="livePid" data-id="${p.id}" aria-pressed="${m.pid === p.id}"><b>${p.data.n || '–'}</b>${esc(shortName(p))}</button>`).join('') || `<span class="muted">${t('ยังไม่มีผู้เล่น')}</span>`}</div>
+<section class="card"><h2>${t('1) เลือกผู้เล่นที่เกี่ยวข้องกับแต้ม')}</h2><div class="pchips" role="group" aria-label="${t('ผู้เล่น')}">${roster.map((p) => `<button class="pchip" data-fk="pc${p.id}" data-act="livePid" data-id="${p.id}" aria-pressed="${m.pid === p.id}"><b>#${p.data.n || '–'}</b>${p.data.pos ? `<small>${esc(p.data.pos)}</small>` : ''}${esc(shortName(p))}</button>`).join('') || `<span class="muted">${t('ยังไม่มีผู้เล่น')}</span>`}</div>
 <h2>${t('2) เราได้แต้มจาก…')}</h2><div class="kinds">${WIN_KINDS.map((k) => kindBtn(k, 'us')).join('')}</div>
 <h2>${t('3) เราเสียแต้มจาก…')}</h2><div class="kinds">${LOSE_KINDS.map((k) => kindBtn(k, 'opp')).join('')}</div>
 ${lastPt ? `<p class="muted">${t('แต้มล่าสุด')}: ${lastPt.who === 'us' ? t('เราได้') : t('เราเสีย')} · ${t(KIND_LABEL[lastPt.kind])}${lastPt.pid ? ' · ' + esc(nm(lastPt.pid)) : ''}</p>` : ''}</section>`;

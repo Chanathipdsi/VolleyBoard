@@ -2,7 +2,7 @@ import { t } from '../i18n.js';
 import { esc, POS, STATUS, STATUS_COLOR, suggestCode, sortBy } from '../util.js';
 import { S, UI, can, role, players, assistants, byId, api, errText, load, toast } from '../store.js';
 import { ico, openDlg, closeDlg, copyText } from '../ui.js';
-import { POS_TH } from '../rules.js';
+import { POS_TH, posLabel } from '../rules.js';
 
 const R = () => (UI.roster = UI.roster || { tab: 'player' });
 const ST_TH = { active: 'พร้อมเล่น', injured: 'บาดเจ็บ', unavailable: 'ไม่พร้อม' };
@@ -17,14 +17,16 @@ function form(m, kind) {
 <label class="fld">${t('เบอร์โทร')}<input class="txt" name="phone" type="tel" value="${esc(m ? m.phone : '')}"></label></div>
 <label class="fld">${t('อีเมล (ไม่บังคับ)')}<input class="txt" name="email" type="email" value="${esc(m ? m.email : '')}"></label>
 ${pl ? `<div class="fgrid"><label class="fld">${t('เบอร์เสื้อ')}<input class="txt" name="n" type="number" min="0" max="99" value="${m ? d.n || '' : nextNumber()}"></label>
-<label class="fld">${t('ตำแหน่ง')}<select class="txt" name="pos">${POS.map((p) => `<option value="${p}" ${d.pos === p ? 'selected' : ''}>${p} · ${t(POS_TH[p])}</option>`).join('')}</select></label></div>
+<label class="fld">${t('ตำแหน่ง')}<select class="txt" name="pos">${POS.map((p) => `<option value="${p}" ${d.pos === p ? 'selected' : ''}>${posLabel(p)}</option>`).join('')}</select></label></div>
 <div class="fgrid"><label class="fld">${t('สถานะ')}<select class="txt" name="st">${STATUS.map((s) => `<option value="${s}" ${(d.st || 'active') === s ? 'selected' : ''}>${t(ST_TH[s])}</option>`).join('')}</select></label>
 <label class="fld">${t('กลุ่ม')}<select class="txt" name="grp"><option value="starter" ${d.grp === 'starter' ? 'selected' : ''}>${t('ตัวจริง')}</option><option value="bench" ${d.grp !== 'starter' ? 'selected' : ''}>${t('ตัวสำรอง')}</option></select></label></div>` : ''}
+${pl ? `<fieldset style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><legend>${t('ข้อมูลร่างกาย (ไม่บังคับ)')}</legend>${[['h', 'ส่วนสูง (ซม.)'], ['w', 'น้ำหนัก (กก.)'], ['age', 'อายุ (ปี)'], ['spike', 'จุดตบ (ซม.)'], ['block', 'จุดบล็อก (ซม.)']].map(([k, l]) => `<label class="fld">${t(l)}<input class="txt" name="${k}" type="number" min="0" max="400" inputmode="numeric" value="${d[k] || ''}"></label>`).join('')}</fieldset>` : ''}
 <label class="fld">${t('ไอดีประจำตัว (ใช้เข้าสู่ระบบ)')}<span class="idrow"><input class="txt code" id="f-code" name="code" value="${esc(code)}" autocapitalize="characters" spellcheck="false"><button type="button" class="icon" data-act="rosterDice" data-kind="${kind}" aria-label="${t('สุ่มไอดีใหม่')}">${ico('dice', 20)}</button></span><span class="hintline">${t('แก้ไขได้ ใช้ A–Z 0–9 และ - (4–24 ตัว) ห้ามซ้ำกับคนอื่นในทีม')}</span></label>`;
 }
 function payload(fd, kind) {
   const o = { name: (fd.name || '').trim(), nick: (fd.nick || '').trim(), phone: (fd.phone || '').trim(), email: (fd.email || '').trim(), code: (fd.code || '').trim() };
   if (kind === 'player') o.data = { n: parseInt(fd.n, 10) || 0, pos: fd.pos, st: fd.st, grp: fd.grp };
+  if (kind === 'player') ['h', 'w', 'age', 'spike', 'block'].forEach((k) => { o.data[k] = parseInt(fd[k], 10) || 0; });
   return o;
 }
 function editDlg(m, kind) {
@@ -43,6 +45,9 @@ function infoDlg(m) {
   const txt = `VolleyBoard\n${t('ไอดีทีม')}: ${S.team.code}\n${t('ไอดีประจำตัว')}: ${m.code}`;
   openDlg({ title: t('ข้อมูลเข้าสู่ระบบของ {n}', { n: m.name }), noCancel: true, ok: t('ปิด'), onSubmit: () => null, body: `<pre class="code" style="white-space:pre-wrap;background:var(--soft);padding:12px;border-radius:12px;margin:0">${esc(txt)}</pre><button type="button" class="btn" data-act="copyInfo" data-t="${esc(txt)}">${ico('copy', 18)} ${t('คัดลอก')}</button><p class="muted">${t('ส่งให้เจ้าตัวทาง LINE/ข้อความ — เข้าที่หน้าแรก แท็บ “ผู้ช่วยโค้ช / ผู้เล่น”')}</p>` });
 }
+const dash = (v) => (v ? v : '–');
+const bmi = (d) => (d.h > 0 && d.w > 0 ? (d.w / ((d.h / 100) ** 2)).toFixed(1) : '–');
+const phys = (d) => ['h', 'w', 'age'].map((k) => `<td>${dash(d[k])}</td>`).join('') + `<td>${bmi(d)}</td><td>${dash(d.spike)}</td><td>${dash(d.block)}</td>`;
 function pick(id) { return byId(id); }
 
 export function render() {
@@ -52,9 +57,9 @@ export function render() {
   const tabs = `<div class="chips" role="tablist"><button class="tab" role="tab" data-fk="rt-p" data-act="rosterTab" data-v="player" aria-selected="${isPl}">${t('ผู้เล่น')} (${players().length})</button><button class="tab" role="tab" data-fk="rt-a" data-act="rosterTab" data-v="assistant" aria-selected="${!isPl}">${t('ผู้ช่วยโค้ช')} (${assistants().length})</button></div>`;
   let body;
   if (!list.length) body = `<div class="empty"><b>${isPl ? t('ยังไม่มีผู้เล่น') : t('ยังไม่มีผู้ช่วยโค้ช')}</b><span>${coach ? t('กดปุ่ม “เพิ่ม” ระบบจะสร้างไอดีประจำตัวให้อัตโนมัติ แก้ไขได้') : t('โค้ชยังไม่ได้เพิ่มรายชื่อ')}</span>${coach ? `<button class="btn main" data-act="rosterAdd" data-kind="${r.tab}">${ico('plus', 18)} ${t('เพิ่ม')}</button>${isPl ? `<button class="btn" data-act="rosterSample">${t('เพิ่มผู้เล่นตัวอย่าง 10 คน')}</button>` : ''}` : ''}</div>`;
-  else body = `<div class="scroll"><table><thead><tr>${isPl ? `<th>#</th>` : ''}<th>${t('ชื่อ')}</th>${isPl ? `<th>${t('ตำแหน่ง')}</th><th>${t('สถานะ')}</th>` : ''}<th>${t('เบอร์โทร')}</th>${coach || role() !== 'coach' ? `<th>${t('ไอดี')}</th>` : ''}${coach ? `<th><span class="sr">${t('จัดการ')}</span></th>` : ''}</tr></thead><tbody>${list.map((m) => {
+  else body = `<div class="scroll"><table><thead><tr>${isPl ? `<th>#</th>` : ''}<th>${t('ชื่อ')}</th>${isPl ? `<th>${t('ตำแหน่ง')}</th><th>${t('สถานะ')}</th><th>${t('ส่วนสูง')}</th><th>${t('น้ำหนัก')}</th><th>${t('อายุ')}</th><th>BMI</th><th>${t('จุดตบ')}</th><th>${t('จุดบล็อก')}</th>` : ''}<th>${t('เบอร์โทร')}</th>${coach || role() !== 'coach' ? `<th>${t('ไอดี')}</th>` : ''}${coach ? `<th><span class="sr">${t('จัดการ')}</span></th>` : ''}</tr></thead><tbody>${list.map((m) => {
     const d = m.data || {}, self = S.me.id === m.id;
-    return `<tr>${isPl ? `<td><span class="num-badge" style="width:34px;height:34px;flex-basis:34px;font-size:1rem">${d.n || '–'}</span></td>` : ''}<td class="wrap"><b>${esc(m.name)}</b>${m.nick && m.nick !== m.name ? `<br><small class="muted">${esc(m.nick)}</small>` : ''}${self ? ` <span class="pill" style="background:var(--ok)">${t('คุณ')}</span>` : ''}</td>${isPl ? `<td>${d.pos ? `${d.pos} · ${t(POS_TH[d.pos])}` : '–'}</td><td><span class="pill" style="background:${STATUS_COLOR[d.st || 'active']}">${t(ST_TH[d.st || 'active'])}</span></td>` : ''}<td>${m.phone ? esc(m.phone) : '–'}</td>${coach || role() !== 'coach' ? `<td class="code">${m.code ? esc(m.code) : '–'}</td>` : ''}${coach ? `<td style="white-space:nowrap"><button class="icon" data-act="rosterInfo" data-id="${m.id}" aria-label="${t('ข้อมูลเข้าสู่ระบบ')}">${ico('copy', 18)}</button> <button class="icon" data-act="rosterEdit" data-id="${m.id}" aria-label="${t('แก้ไข')}">${ico('edit', 18)}</button> <button class="icon" data-act="rosterDel" data-id="${m.id}" aria-label="${t('ลบ')}">${ico('del', 18)}</button></td>` : ''}</tr>`;
+    return `<tr>${isPl ? `<td><span class="num-badge" style="width:34px;height:34px;flex-basis:34px;font-size:1rem">${d.n || '–'}</span></td>` : ''}<td class="wrap"><b>${esc(m.name)}</b>${m.nick && m.nick !== m.name ? `<br><small class="muted">${esc(m.nick)}</small>` : ''}${self ? ` <span class="pill" style="background:var(--ok)">${t('คุณ')}</span>` : ''}</td>${isPl ? `<td>${posLabel(d.pos)}</td><td><span class="pill" style="background:${STATUS_COLOR[d.st || 'active']}">${t(ST_TH[d.st || 'active'])}</span></td>${phys(d)}` : ''}<td>${m.phone ? esc(m.phone) : '–'}</td>${coach || role() !== 'coach' ? `<td class="code">${m.code ? esc(m.code) : '–'}</td>` : ''}${coach ? `<td style="white-space:nowrap"><button class="icon" data-act="rosterInfo" data-id="${m.id}" aria-label="${t('ข้อมูลเข้าสู่ระบบ')}">${ico('copy', 18)}</button> <button class="icon" data-act="rosterEdit" data-id="${m.id}" aria-label="${t('แก้ไข')}">${ico('edit', 18)}</button> <button class="icon" data-act="rosterDel" data-id="${m.id}" aria-label="${t('ลบ')}">${ico('del', 18)}</button></td>` : ''}</tr>`;
   }).join('')}</tbody></table></div>`;
   return `${head}<section class="card">${tabs}${body}${coach && list.length ? `<p class="muted">${t('ผู้เล่นเห็นเฉพาะข้อมูลติดต่อและไอดีของตัวเอง ผู้ช่วยโค้ชเห็นเบอร์โทรแต่ไม่เห็นไอดี/อีเมลของผู้อื่น')}</p>` : ''}</section>`;
 }

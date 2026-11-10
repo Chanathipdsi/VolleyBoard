@@ -293,3 +293,6 @@ legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: re
 .hv small { font-weight: 400; color: var(--muted); }
 .pt .dot { opacity: 0; } .pt:hover .dot, .pt:focus .dot { opacity: 1; } .pt { outline: none; }
 .pt:focus-visible rect { stroke: var(--focus); stroke-width: 2; }
+.pchip small { font-weight: 500; font-size: .75rem; color: var(--muted); }
+.pchip[aria-pressed="true"] small { color: inherit; opacity: .85; }
+.tname b { color: #FFD23F; font-weight: 600; }

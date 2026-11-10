@@ -44,7 +44,7 @@ function memberOut(row, viewer) {
   const out = { id: row.id, role: row.role, name: row.name, nick: row.nick, data };
   if (viewer.role === 'coach' || self) { out.email = row.email || ''; out.phone = row.phone; out.code = row.code || ''; }
   else if (viewer.role === 'assistant') { out.phone = row.phone; }
-  else {
+  else if (!self) {
     out.name = row.nick || row.name;
     out.data = { n: data.n, pos: data.pos, pos2: data.pos2, grp: data.grp, st: data.st };
   }
@@ -57,7 +57,7 @@ function cleanPlayer(d, old) {
   if (d.n !== undefined) o.n = int(d.n, 0, 99, 0);
   if (d.pos !== undefined && POS.includes(d.pos)) o.pos = d.pos;
   if (d.pos2 !== undefined && POS.includes(d.pos2)) o.pos2 = d.pos2;
-  ['h', 'w', 'spike', 'block'].forEach((k) => { if (d[k] !== undefined) o[k] = int(d[k], 0, 400, 0); });
+  ['h', 'w', 'age', 'spike', 'block'].forEach((k) => { if (d[k] !== undefined) o[k] = int(d[k], 0, 400, 0); });
   if (d.grp !== undefined && GRP.includes(d.grp)) o.grp = d.grp;
   if (d.st !== undefined && ST.includes(d.st)) o.st = d.st;
   if (o.pos === undefined) o.pos = 'OH';
