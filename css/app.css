@@ -326,3 +326,6 @@ legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: re
 .tpl { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .tpl > span { flex: 1; display: flex; flex-direction: column; } .tpl small { color: var(--muted, inherit); opacity: .75; }
 .bench .spill { flex-shrink: 0; }
+
+/* banner swoosh lines */
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: no-repeat right bottom / 78% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300' preserveAspectRatio='none' fill='none'%3E%3Cpath d='M0 300C200 250 380 190 520 120S740 20 800 0' stroke='%23FFB38A' stroke-opacity='.75' stroke-width='3'/%3E%3Cpath d='M60 300C240 255 400 215 540 160S740 70 800 40' stroke='%23fff' stroke-opacity='.5' stroke-width='2.5'/%3E%3Cpath d='M180 300C320 270 460 240 580 200S740 140 800 110' stroke='%23fff' stroke-opacity='.35' stroke-width='1.5'/%3E%3Cpath d='M300 300C440 285 580 270 680 245S780 215 800 205' stroke='%23C9CCF5' stroke-opacity='.4' stroke-width='1.2'/%3E%3C/svg%3E"); }
