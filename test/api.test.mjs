@@ -141,6 +141,20 @@ test('docs: versioned writes, conflicts, role permissions, player cannot see pla
   assert.equal(second.status, 304);
 });
 
+test('problem reports are emailed to the owner', async () => {
+  const { outbox } = await import('../api/_lib/mail.js');
+  delete process.env.REPORT_TO;
+  assert.equal((await coach.post('/report', { message: 'something is broken' })).json.error, 'report_not_configured');
+  process.env.REPORT_TO = 'owner@example.com';
+  assert.equal((await coach.post('/report', { message: 'x' })).json.error, 'bad_message');
+  const r = await coach.post('/report', { kind: 'bug', message: 'Score <b>board</b> is wrong', page: '#/matches' });
+  assert.equal(r.status, 200);
+  const m = outbox[outbox.length - 1];
+  assert.equal(m.to, 'owner@example.com');
+  assert.ok(m.html.includes('&lt;b&gt;board'), 'message is HTML-escaped');
+  assert.equal((await new Client(srv.base).post('/report', { message: 'anonymous report' })).status, 401);
+});
+
 test('rate limit on member login', async () => {
   const c = new Client(srv.base);
   let last;

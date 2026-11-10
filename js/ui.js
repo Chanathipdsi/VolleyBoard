@@ -23,6 +23,7 @@ const IC = {
   logout: '<path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 8l-4 4 4 4M6 12h10"></path>',
   warn: '<path d="M12 3l10 18H2zM12 10v5M12 18v.5"></path>', spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path>',
   send: '<path d="M4 12l16-8-6 16-3-7z"></path>', chart: '<path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3"></path>', user: '<circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path>',
+  down: '<path d="M12 4v11M7 11l5 5 5-5M5 20h14"></path>', flag: '<path d="M5 21V4M5 4h12l-2 4 2 4H5"></path>',
   clock: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>', undo: '<path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"></path>'
 };
 export const ico = (n, sz = 22) => `<svg aria-hidden="true" width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[n] || ''}</svg>`;

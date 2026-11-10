@@ -9,6 +9,10 @@ export async function sendOtp(to, code) {
 <p style="margin:0 0 16px">รหัสยืนยันของคุณ (ใช้ได้ 10 นาที)<br>Your verification code (valid for 10 minutes)</p>
 <p style="font-size:34px;letter-spacing:8px;font-weight:700;margin:0 0 16px">${code}</p>
 <p style="color:#666;font-size:13px;margin:0">หากคุณไม่ได้ขอรหัสนี้ ให้ละเว้นอีเมลฉบับนี้ / If you didn't request this, ignore this email.</p></div>`;
+  return sendMail(to, subject, html, { code });
+}
+
+export async function sendMail(to, subject, html, opts = {}) {
   const from = process.env.MAIL_FROM;
   const name = process.env.MAIL_FROM_NAME || 'VolleyBoard';
   if (process.env.BREVO_API_KEY && from) {
@@ -39,8 +43,9 @@ export async function sendOtp(to, code) {
     return;
   }
   if (process.env.MAIL_PROVIDER === 'console' && process.env.NODE_ENV !== 'production') {
-    outbox.push({ to, code, at: Date.now() });
-    console.log(`[mail:dev] OTP for ${to}: ${code}`);
+    outbox.push({ to, code: opts.code, subject, html, at: Date.now() });
+    console.log(`[mail:dev] to ${to}: ${subject}`);
+    if (opts.code) console.log(`[mail:dev] OTP for ${to}: ${opts.code}`);
     return;
   }
   throw fail(503, 'mail_not_configured');

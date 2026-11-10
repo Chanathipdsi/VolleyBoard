@@ -34,7 +34,7 @@ function attendance(s) {
   const ppl = players();
   if (!ppl.length) return `<p class="muted">${t('ยังไม่มีผู้เล่น')}</p>`;
   const sum = ATT.map(([k, l]) => `${t(l)} ${ppl.filter((p) => a[p.id] === k).length}`).join(' · ');
-  return `<div class="col" style="gap:6px"><p class="muted">${sum}</p>${ppl.map((p) => `<div class="split" style="align-items:center"><span><b>#${p.data.n || '–'}</b> ${esc(shortName(p))}</span><span class="chips" role="group" aria-label="${esc(p.name)}">${ATT.map(([k, l]) => `<button class="tab" data-act="attSet" data-s="${s.id}" data-p="${p.id}" data-v="${k}" aria-pressed="${a[p.id] === k}">${t(l)}</button>`).join('')}</span></div>`).join('')}</div>`;
+  return `<div class="col" style="gap:6px"><p class="muted">${ATT.map(([k, l, c]) => `<span class="pill" style="background:${c}">${t(l)} ${ppl.filter((p) => a[p.id] === k).length}</span>`).join(' ')}</p>${ppl.map((p) => `<div class="split" style="align-items:center"><span><b>#${p.data.n || '–'}</b> ${esc(shortName(p))}</span><span class="chips" role="group" aria-label="${esc(p.name)}">${ATT.map(([k, l]) => `<button class="tab st" style="--c:${ATT.find((x) => x[0] === k)[2]}" data-act="attSet" data-s="${s.id}" data-p="${p.id}" data-v="${k}" aria-pressed="${a[p.id] === k}">${t(l)}</button>`).join('')}</span></div>`).join('')}</div>`;
 }
 function sessCard(s) {
   const edit = can('train'), open = T().att === s.id, mine = doc('attendance')[s.id] && doc('attendance')[s.id][S.me.id];

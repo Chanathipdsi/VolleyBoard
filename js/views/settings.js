@@ -24,6 +24,11 @@ ${coach ? `<section class="card" style="flex:1 1 340px"><h2>${t('ทีม')}</h
 <div class="setrow"><div><b>${t('ขนาดตัวอักษร')}</b></div>${seg('size', [['s', t('เล็ก')], ['m', t('กลาง')], ['l', t('ใหญ่')]])}</div>
 <div class="setrow"><div><b>${t('เริ่มสัปดาห์ในปฏิทิน')}</b></div>${seg('weekStart', [['0', t('วันอาทิตย์')], ['1', t('วันจันทร์')]])}</div>
 ${sw('contrast', t('ความคมชัดสูง'))}${sw('compact', t('แสดงแบบกระชับ'))}${sw('reduceMotion', t('ลดการเคลื่อนไหว'))}${sw('buddhist', t('ใช้ปีพุทธศักราช (ภาษาไทย)'))}</section>
+<section class="card"><h2>${ico('flag', 20)} ${t('แจ้งปัญหา / ข้อเสนอแนะ')}</h2><p class="muted">${t('ข้อความจะถูกส่งถึงผู้ดูแลระบบทางอีเมล พร้อมชื่อทีมและชื่อของคุณเพื่อติดต่อกลับ')}</p>
+<div class="fgrid"><label class="fld">${t('ประเภท')}<select class="txt" id="rp-kind"><option value="bug">${t('พบข้อผิดพลาด')}</option><option value="data">${t('ข้อมูลไม่ถูกต้อง')}</option><option value="idea">${t('ข้อเสนอแนะ')}</option><option value="other">${t('อื่น ๆ')}</option></select></label>
+<label class="fld">${t('ช่องทางติดต่อกลับ (ไม่บังคับ)')}<input class="txt" id="rp-contact" placeholder="${t('เบอร์โทรหรือ LINE')}" autocomplete="off"></label></div>
+<label class="fld">${t('รายละเอียด')}<textarea class="txt" id="rp-msg" maxlength="2000" placeholder="${t('เกิดอะไรขึ้น ทำอะไรอยู่ที่หน้าไหน')}"></textarea></label>
+<button class="btn main" data-act="sendReport">${ico('send', 18)} ${t('ส่งรายงาน')}</button></section>
 <div class="row"><section class="card" style="flex:1 1 340px"><h2>${t('เกี่ยวกับ / ช่วยเหลือ')}</h2><p>VolleyBoard 2.0</p>
 <p class="muted">${t('โค้ชเข้าด้วยอีเมล + รหัส OTP ผู้ช่วยโค้ชและผู้เล่นเข้าด้วยไอดีทีม + ไอดีประจำตัว (ไม่มีรหัสผ่าน จึงอย่าแชร์ไอดีให้คนนอกทีม) ข้อมูลทีมเก็บในฐานข้อมูลของระบบ และซิงก์ถึงทุกเครื่องของทีมอัตโนมัติ')}</p>
 <p class="muted">${t('ผู้ช่วยกติกาในหน้ากระดานสนามตอบจากกติกาที่ตั้งไว้ ไม่ใช่โมเดล AI ทั่วไป')}</p></section>
@@ -41,6 +46,15 @@ export const actions = {
     const v = (id) => document.getElementById(id).value.trim();
     const r = await api('PATCH', '/team', { name: v('tm-name'), country: v('tm-country'), code: v('tm-code') });
     if (!r.ok) { toast(errText(r.data.error), 'bad'); return false; } await load(); toast(t('บันทึกแล้ว'));
+  },
+  async sendReport() {
+    const msg = document.getElementById('rp-msg').value.trim();
+    if (msg.length < 5) { toast(t('กรุณาอธิบายปัญหาอย่างน้อย 5 ตัวอักษร'), 'bad'); return false; }
+    const r = await api('POST', '/report', { kind: document.getElementById('rp-kind').value, message: msg, contact: document.getElementById('rp-contact').value, page: location.hash || '#/settings' });
+    if (!r.ok) { toast(errText(r.data.error), 'bad'); return false; }
+    toast(t('ส่งรายงานแล้ว ขอบคุณครับ/ค่ะ'));
+    document.getElementById('rp-msg').value = '';
+    return false;
   },
   exportData() {
     const out = { team: S.team, members: S.members, docs: S.docs, exportedAt: new Date().toISOString() };

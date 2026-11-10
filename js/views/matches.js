@@ -5,6 +5,7 @@ import { ico, openDlg, calendar, calState, fmtDate, timeLabel } from '../ui.js';
 import { posLabel } from '../rules.js';
 import { WIN_KINDS, LOSE_KINDS, KIND_LABEL, summarize, sumObj, aggregate } from '../stats.js';
 import { hbars, momentumChart } from '../charts.js';
+import { reportData, toCSV, toXLSX, printPDF, download, fileBase } from '../export.js';
 
 const M = () => (UI.mt = UI.mt || { tab: 'list', sel: null, pid: null });
 const events = () => doc('events');
@@ -68,15 +69,16 @@ function liveView() {
     return `<section class="card"><h2>${t('เริ่มบันทึกเกมสด')}</h2><p class="muted">${t('เลือกแมตช์ที่จะบันทึก ระบบนับแต้ม เซ็ต เวลานอก และการเปลี่ยนตัวให้')}</p>${open.length ? open.map((e) => `<div class="sess"><div class="grow"><b>${esc(e.opp)}</b><br><small class="muted">${fmtDate(e.date)} ${timeLabel(e.time)}</small></div><button class="btn main sm" data-act="liveStart" data-id="${e.id}">${t('เริ่ม')}</button></div>`).join('') : `<div class="empty"><b>${t('ยังไม่มีแมตช์ที่รอแข่ง')}</b>${can('schedule') ? `<button class="btn main" data-act="evAdd" data-d="${todayIso()}">${ico('plus', 18)} ${t('เพิ่มแมตช์')}</button>` : ''}</div>`}</section>`;
   }
   const ev = events().find((e) => e.id === live.eventId), c = liveCounts(live), r = result({ sets: live.sets });
-  const roster = players().filter((p) => (p.data.st || 'active') !== 'unavailable');
+  const lu = doc('court').lineup || {}, zoneOf = {}; Object.keys(lu).forEach((z) => { if (lu[z]) zoneOf[lu[z]] = z; });
+  const roster = players().filter((p) => (p.data.st || 'active') !== 'unavailable').sort((a, b) => (zoneOf[a.id] ? 0 : 1) - (zoneOf[b.id] ? 0 : 1) || (zoneOf[a.id] || 9) - (zoneOf[b.id] || 9));
   const cnt = (id) => live.log.filter((e) => e.k === 'pt' && e.kind === id).length;
   const kindBtn = (k, who) => `<button class="kind ${who === 'us' ? 'win' : 'lose'}" data-act="livePt" data-who="${who}" data-k="${k.id}">${t(k.label)}<small>${k.pl ? t('ต้องเลือกผู้เล่น') : t('ไม่ระบุผู้เล่น')} · ${cnt(k.id)}</small></button>`;
   const lastPt = [...live.log].reverse().find((e) => e.k === 'pt');
   return `<section class="card"><div class="split"><h2>${t('เทียบกับ {o}', { o: esc(ev ? ev.opp : '?') })}</h2><span class="muted">${t('เซ็ต {n}', { n: live.set })} · ${t('ชนะเซ็ต {a}–{b}', { a: r.w, b: r.l })} · ${t('เป็นผู้ชนะเมื่อได้ {n} เซ็ต', { n: need(live) })}</span></div>
 <div class="row" style="flex-wrap:nowrap"><div class="score us"><span>${t('ทีมเรา')}</span><b>${live.a}</b></div><div class="score opp"><span>${t('คู่แข่ง')}</span><b>${live.b}</b></div></div>
-${live.sets.length ? `<div class="chips">${live.sets.map((s, i) => `<span class="pill" style="background:${s.a > s.b ? 'var(--ok)' : 'var(--warn)'}">${t('เซ็ต {n}', { n: i + 1 })}: ${s.a}–${s.b}</span>`).join('')}</div>` : ''}
+${live.sets.length ? `<div class="chips">${live.sets.map((s, i) => `<span class="pill" style="background:${s.a > s.b ? 'var(--ok)' : 'var(--bad)'}">${t('เซ็ต {n}', { n: i + 1 })}: ${s.a}–${s.b}</span>`).join('')}</div>` : ''}
 <div class="chips"><button class="btn sm" data-act="liveUndo" ${live.log.length ? '' : 'disabled'}>${ico('undo', 16)} ${t('ย้อนกลับ')}</button><button class="btn sm" data-act="liveTo" ${c.to >= 2 ? 'disabled' : ''}>${t('เวลานอก')} (${c.to}/2)</button><button class="btn sm" data-act="liveSub" ${c.sub >= 6 ? 'disabled' : ''}>${t('เปลี่ยนตัว')} (${c.sub}/6)</button><button class="btn sm" data-act="liveEndSet">${t('จบเซ็ตนี้')}</button><button class="btn sm main" data-act="liveFinish">${t('จบแมตช์และบันทึก')}</button><button class="btn sm danger" data-act="liveCancel">${t('ยกเลิกเกมสด')}</button></div></section>
-<section class="card"><h2>${t('1) เลือกผู้เล่นที่เกี่ยวข้องกับแต้ม')}</h2><div class="pchips" role="group" aria-label="${t('ผู้เล่น')}">${roster.map((p) => `<button class="pchip" data-fk="pc${p.id}" data-act="livePid" data-id="${p.id}" aria-pressed="${m.pid === p.id}"><b>#${p.data.n || '–'}</b>${p.data.pos ? `<small>${esc(p.data.pos)}</small>` : ''}${esc(shortName(p))}</button>`).join('') || `<span class="muted">${t('ยังไม่มีผู้เล่น')}</span>`}</div>
+<section class="card"><h2>${t('1) เลือกผู้เล่นที่เกี่ยวข้องกับแต้ม')}</h2><div class="legend"><span><i style="background:var(--ok)"></i>${t('อยู่บนสนามตอนนี้ (ตามกระดานสนาม)')}</span><span><i style="border:2px solid var(--chip-line);background:transparent"></i>${t('สำรอง')}</span></div><div class="pchips" role="group" aria-label="${t('ผู้เล่น')}">${roster.map((p) => `<button class="pchip${zoneOf[p.id] ? ' on' : ''}" data-fk="pc${p.id}" data-act="livePid" data-id="${p.id}" aria-pressed="${m.pid === p.id}" aria-label="${esc(shortName(p))}${zoneOf[p.id] ? ' — ' + t('อยู่บนสนาม โซน {z}', { z: zoneOf[p.id] }) : ' — ' + t('สำรอง')}"><b>#${p.data.n || '–'}</b>${p.data.pos ? `<small>${esc(p.data.pos)}</small>` : ''}${esc(shortName(p))}${zoneOf[p.id] ? `<small class="zt">${t('โซน {z}', { z: zoneOf[p.id] })}</small>` : ''}</button>`).join('') || `<span class="muted">${t('ยังไม่มีผู้เล่น')}</span>`}</div>
 <h2>${t('2) เราได้แต้มจาก…')}</h2><div class="kinds">${WIN_KINDS.map((k) => kindBtn(k, 'us')).join('')}</div>
 <h2>${t('3) เราเสียแต้มจาก…')}</h2><div class="kinds">${LOSE_KINDS.map((k) => kindBtn(k, 'opp')).join('')}</div>
 ${lastPt ? `<p class="muted">${t('แต้มล่าสุด')}: ${lastPt.who === 'us' ? t('เราได้') : t('เราเสีย')} · ${t(KIND_LABEL[lastPt.kind])}${lastPt.pid ? ' · ' + esc(nm(lastPt.pid)) : ''}</p>` : ''}</section>`;
@@ -86,7 +88,7 @@ ${lastPt ? `<p class="muted">${t('แต้มล่าสุด')}: ${lastPt.wh
 function dashboard(r, title) {
   const s = summarize(r.log, r.sets), res = result(r), detail = (r.log || []).some((e) => e.k === 'pt');
   const setTable = `<div class="scroll"><table><thead><tr><th>${t('เซ็ต')}</th><th>${t('เรา')}</th><th>${t('คู่แข่ง')}</th><th>${t('ผล')}</th></tr></thead><tbody>${(r.sets || []).map((x, i) => `<tr><td>${i + 1}</td><td>${x.a}</td><td>${x.b}</td><td>${x.a > x.b ? t('ชนะ') : t('แพ้')}</td></tr>`).join('')}</tbody></table></div>`;
-  const kpi = `<div class="kpis"><div class="kpi"><span>${t('ผลการแข่ง')}</span><b>${res.w}–${res.l}</b><small>${res.win ? t('ชนะ') : t('แพ้')}</small></div>${detail ? `<div class="kpi"><span>${t('แต้มรวม')}</span><b>${s.us}–${s.opp}</b><small>${t('เรา–คู่แข่ง')}</small></div>` : ''}${detail ? `<div class="kpi"><span>${t('ได้แต้มจากการเล่น')}</span><b>${s.win.kill + s.win.tip + s.win.ace + s.win.block}</b><small>${t('ตบ/หลอก/เอซ/บล็อก')}</small></div><div class="kpi"><span>${t('คู่แข่งให้แต้ม')}</span><b>${s.win.o_serve + s.win.o_atk + s.win.o_fault}</b><small>${t('จากความผิดพลาดของคู่แข่ง')}</small></div><div class="kpi"><span>${t('เสียแต้มจากเราเอง')}</span><b>${sumObj(s.lose) - s.lose.opp_kill - s.lose.opp_ace}</b><small>${t('ผิดพลาดของทีม')}</small></div>` : ''}</div>`;
+  const kpi = `<div class="kpis"><div class="kpi"><span>${t('ผลการแข่ง')}</span><b style="color:${res.win ? 'var(--ok-text)' : 'var(--bad-text)'}">${res.w}–${res.l}</b><small><span class="pill" style="background:${res.win ? 'var(--ok)' : 'var(--bad)'}">${res.win ? t('ชนะ') : t('แพ้')}</span></small></div>${detail ? `<div class="kpi"><span>${t('แต้มรวม')}</span><b>${s.us}–${s.opp}</b><small>${t('เรา–คู่แข่ง')}</small></div>` : ''}${detail ? `<div class="kpi"><span>${t('ได้แต้มจากการเล่น')}</span><b>${s.win.kill + s.win.tip + s.win.ace + s.win.block}</b><small>${t('ตบ/หลอก/เอซ/บล็อก')}</small></div><div class="kpi"><span>${t('คู่แข่งให้แต้ม')}</span><b>${s.win.o_serve + s.win.o_atk + s.win.o_fault}</b><small>${t('จากความผิดพลาดของคู่แข่ง')}</small></div><div class="kpi"><span>${t('เสียแต้มจากเราเอง')}</span><b>${sumObj(s.lose) - s.lose.opp_kill - s.lose.opp_ace}</b><small>${t('ผิดพลาดของทีม')}</small></div>` : ''}</div>`;
   if (!detail) return `${kpi}<h3>${t('คะแนนรายเซ็ต')}</h3>${setTable}<p class="muted">${t('แมตช์นี้ใส่ผลย้อนหลัง จึงไม่มีสถิติรายแต้ม — ใช้ “บันทึกเกมสด” ในครั้งต่อไปเพื่อดูกราฟละเอียด')}</p>`;
   const winRows = WIN_KINDS.map((k) => ({ label: t(k.label), value: s.win[k.id], share: s.us ? Math.round(s.win[k.id] / s.us * 100) : 0 }));
   const loseRows = LOSE_KINDS.map((k) => ({ label: t(k.label), value: s.lose[k.id], share: s.opp ? Math.round(s.lose[k.id] / s.opp * 100) : 0 })).sort((a, b) => b.value - a.value);
@@ -118,7 +120,7 @@ function season() {
 function marks(d) { return { t: doc('sessions').filter((s) => s.date === d).length, m: events().filter((e) => e.date === d).length }; }
 function row(e) {
   const r = recOf(e.id), res = r && result(r);
-  return `<button class="bench" data-act="mtOpen" data-id="${e.id}" style="min-height:60px"><span class="num-badge" style="${res ? `background:${res.win ? 'var(--ok)' : 'var(--warn)'};color:#0B0F63` : ''}">${res ? res.w + '–' + res.l : '–'}</span><span><b>${esc(e.opp)}</b><br><small>${fmtDate(e.date)} ${timeLabel(e.time)} ${e.place ? '· ' + esc(e.place) : ''}</small></span></button>`;
+  return `<button class="bench" data-act="mtOpen" data-id="${e.id}" style="min-height:60px"><span class="num-badge" style="${res ? `background:${res.win ? 'var(--ok)' : 'var(--bad)'};color:#0B0F63` : ''}">${res ? res.w + '–' + res.l : '–'}</span><span><b>${esc(e.opp)}</b><br><small>${fmtDate(e.date)} ${timeLabel(e.time)} ${e.place ? '· ' + esc(e.place) : ''}</small></span></button>`;
 }
 function detail() {
   const m = M(), ev = events().find((e) => e.id === m.sel); if (!ev) { m.sel = null; return ''; }
@@ -126,7 +128,7 @@ function detail() {
   const plan = (doc('plans')[ev.id] || {}).note || '';
   return `<section class="card"><div class="split"><button class="btn sm" data-act="mtBack">${ico('l', 16)} ${t('กลับ')}</button><span class="chips">${edit ? `<button class="btn sm" data-act="evEdit" data-id="${ev.id}">${ico('edit', 16)} ${t('แก้ไข')}</button><button class="btn sm danger" data-act="evDel" data-id="${ev.id}">${ico('del', 16)} ${t('ลบ')}</button>` : ''}</span></div>
 <h2>${t('พบ {o}', { o: esc(ev.opp) })}</h2><p class="muted">${fmtDate(ev.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} ${timeLabel(ev.time)} · ${esc(ev.place || '–')} · ${t(TYPES[ev.type] || '')}</p>
-${r ? dashboard(r) : `<div class="empty"><b>${t('ยังไม่มีผลการแข่ง')}</b>${can('stats') ? `<div class="chips"><button class="btn main" data-act="liveStart" data-id="${ev.id}">${t('เริ่มบันทึกเกมสด')}</button><button class="btn" data-act="pastRes" data-id="${ev.id}">${t('ใส่ผลย้อนหลัง')}</button></div>` : ''}</div>`}
+${r ? `<div class="chips" role="group" aria-label="${t('ดาวน์โหลดรายงานแมตช์')}"><span class="muted">${t('ดาวน์โหลดรายงานแมตช์')}:</span><button class="btn sm" data-act="dlReport" data-f="pdf" data-id="${ev.id}">${ico('down', 16)} PDF</button><button class="btn sm" data-act="dlReport" data-f="xlsx" data-id="${ev.id}">${ico('down', 16)} Excel (.xlsx)</button><button class="btn sm" data-act="dlReport" data-f="csv" data-id="${ev.id}">${ico('down', 16)} CSV</button></div>${dashboard(r)}` : `<div class="empty"><b>${t('ยังไม่มีผลการแข่ง')}</b>${can('stats') ? `<div class="chips"><button class="btn main" data-act="liveStart" data-id="${ev.id}">${t('เริ่มบันทึกเกมสด')}</button><button class="btn" data-act="pastRes" data-id="${ev.id}">${t('ใส่ผลย้อนหลัง')}</button></div>` : ''}</div>`}
 ${r && can('stats') ? `<button class="btn sm danger" data-act="recDel" data-id="${ev.id}">${t('ลบผลการแข่งนี้')}</button>` : ''}
 ${edit && !r ? `<label class="fld">${t('แผนการเล่น/หมายเหตุของโค้ช (ผู้เล่นไม่เห็น)')}<textarea class="txt" data-ch="planNote" data-id="${ev.id}">${esc(plan)}</textarea></label>` : ''}</section>`;
 }
@@ -156,6 +158,13 @@ export const actions = {
   evDel(d) {
     const e = events().find((x) => x.id === d.id);
     openDlg({ title: t('ลบแมตช์กับ {o}?', { o: e.opp }), danger: true, ok: t('ลบ'), body: `<p>${t('ผลการแข่งของแมตช์นี้ (ถ้ามี) จะยังเก็บไว้ในระบบ แต่จะไม่แสดงในรายการ')}</p>`, onSubmit() { events().splice(events().indexOf(e), 1); commit('events'); M().sel = null; } });
+    return false;
+  },
+  dlReport(d) {
+    const ev = events().find((e) => e.id === d.id), r = ev && recOf(ev.id); if (!r) return false;
+    const who = (id) => { const m = byId(id); return m ? { n: m.data.n || '', name: m.name, pos: m.data.pos || '' } : { n: '', name: t('อดีตผู้เล่น'), pos: '' }; };
+    const data = reportData(S.team, ev, r, who), base = fileBase(data);
+    if (d.f === 'csv') download(toCSV(data), base + '.csv'); else if (d.f === 'xlsx') download(toXLSX(data), base + '.xlsx'); else { printPDF(data); toast(t('เลือก “บันทึกเป็น PDF” ในหน้าต่างพิมพ์')); }
     return false;
   },
   pastRes(d) { pastDlg(events().find((e) => e.id === d.id)); return false; },

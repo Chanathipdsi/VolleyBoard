@@ -1,6 +1,6 @@
 import { fail, HttpError, send, readJson, parseCookies, signToken, verifyToken, hmac, clientIp, cookieHeader, etagOf, uuid, digits, pick } from './http.js';
 import { all, one, rateLimit } from './db.js';
-import { sendOtp } from './mail.js';
+import { sendOtp, sendMail } from './mail.js';
 
 const SESSION_TTL = 60 * 60 * 24 * 30;
 const OTP_TTL_MS = 10 * 60 * 1000;
@@ -323,6 +323,25 @@ async function checkTeamCode(req, res) {
   send(res, 200, { ok: !taken, reason: taken ? 'taken' : null });
 }
 
+const REPORT_KINDS = { bug: 'Bug / ข้อผิดพลาด', idea: 'Suggestion / ข้อเสนอแนะ', data: 'Data problem / ข้อมูลผิด', other: 'Other / อื่น ๆ' };
+const escH = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+async function postReport(req, res) {
+  const { m, team } = await need(req);
+  const b = await readJson(req);
+  const msg = String(b.message || '').trim().slice(0, 2000);
+  if (msg.length < 5) throw fail(400, 'bad_message');
+  if (!(await rateLimit('report:' + m.id, 5, 3600)) || !(await rateLimit('report-team:' + team.id, 20, 86400))) throw fail(429, 'rate_limited');
+  const kind = REPORT_KINDS[b.kind] ? b.kind : 'other';
+  const to = process.env.REPORT_TO;
+  if (!to) throw fail(503, 'report_not_configured');
+  const row = (k, v) => `<tr><td style="padding:4px 12px 4px 0;color:#666">${k}</td><td style="padding:4px 0"><b>${escH(v)}</b></td></tr>`;
+  const html = `<div style="font-family:system-ui,sans-serif;max-width:560px"><h2 style="margin:0 0 8px;color:#2128D0">VolleyBoard — ${escH(REPORT_KINDS[kind])}</h2>
+<p style="white-space:pre-wrap;background:#F3F4FF;padding:12px;border-radius:10px">${escH(msg)}</p>
+<table style="font-size:14px">${row('Team', team.name + ' (' + team.code + ', ' + team.country + ')')}${row('From', m.name + ' — ' + m.role)}${row('Email', m.email || '-')}${row('Phone', m.phone || '-')}${row('Contact', String(b.contact || '-').slice(0, 120))}${row('Page', String(b.page || '-').slice(0, 120))}${row('Browser', String(req.headers['user-agent'] || '-').slice(0, 160))}</table></div>`;
+  await sendMail(to, `[VolleyBoard] ${REPORT_KINDS[kind]} — ${team.name}`, html);
+  send(res, 200, { ok: true });
+}
+
 async function deleteTeam(req, res) {
   const { m, team } = await need(req);
   if (m.role !== 'coach') throw fail(403, 'forbidden');
@@ -366,6 +385,7 @@ export async function handle(req, res) {
     if ((mt = path.match(/^\/members\/([^/]+)\/regen$/)) && method === 'POST') return await regenCode(req, res, mt[1]);
     if (path === '/team' && method === 'PATCH') return await patchTeam(req, res);
     if (path === '/team' && method === 'DELETE') return await deleteTeam(req, res);
+    if (path === '/report' && method === 'POST') return await postReport(req, res);
     if (path === '/team/check-code' && method === 'POST') return await checkTeamCode(req, res);
     throw fail(404, 'not_found');
   } catch (e) {

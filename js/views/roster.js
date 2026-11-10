@@ -5,7 +5,7 @@ import { ico, openDlg, closeDlg, copyText } from '../ui.js';
 import { POS_TH, posLabel } from '../rules.js';
 
 const R = () => (UI.roster = UI.roster || { tab: 'player' });
-const ST_TH = { active: 'พร้อมเล่น', injured: 'บาดเจ็บ', unavailable: 'ไม่พร้อม' };
+const ST_TH = { active: 'พร้อมเล่น', injured: 'บาดเจ็บ', unavailable: 'ติดภารกิจ' };
 const SAMPLE = [['สมชาย ใจดี', 'ชาย', 'S'], ['วิชัย เก่งกาจ', 'วิชัย', 'OH'], ['ณัฐพล รักกีฬา', 'พล', 'OH'], ['ธนากร สู้ไม่ถอย', 'ธน', 'MB'], ['กิตติ มั่นใจ', 'กิต', 'MB'], ['อนุชา ว่องไว', 'ชา', 'OP'], ['ปิยะ รับแม่น', 'ปิยะ', 'L'], ['ภานุ ตบแรง', 'ภานุ', 'OH'], ['ศุภกร บล็อกเก่ง', 'กร', 'MB'], ['เจษฎา เซตสวย', 'เจ', 'S']];
 
 function nextNumber() { const used = new Set(players().map((p) => p.data.n)); for (let i = 1; i < 100; i++) if (!used.has(i)) return i; return 0; }
@@ -61,7 +61,7 @@ export function render() {
     const d = m.data || {}, self = S.me.id === m.id;
     return `<tr>${isPl ? `<td><span class="num-badge" style="width:34px;height:34px;flex-basis:34px;font-size:1rem">${d.n || '–'}</span></td>` : ''}<td class="wrap"><b>${esc(m.name)}</b>${m.nick && m.nick !== m.name ? `<br><small class="muted">${esc(m.nick)}</small>` : ''}${self ? ` <span class="pill" style="background:var(--ok)">${t('คุณ')}</span>` : ''}</td>${isPl ? `<td>${posLabel(d.pos)}</td><td><span class="pill" style="background:${STATUS_COLOR[d.st || 'active']}">${t(ST_TH[d.st || 'active'])}</span></td>${phys(d)}` : ''}<td>${m.phone ? esc(m.phone) : '–'}</td>${coach || role() !== 'coach' ? `<td class="code">${m.code ? esc(m.code) : '–'}</td>` : ''}${coach ? `<td style="white-space:nowrap"><button class="icon" data-act="rosterInfo" data-id="${m.id}" aria-label="${t('ข้อมูลเข้าสู่ระบบ')}">${ico('copy', 18)}</button> <button class="icon" data-act="rosterEdit" data-id="${m.id}" aria-label="${t('แก้ไข')}">${ico('edit', 18)}</button> <button class="icon" data-act="rosterDel" data-id="${m.id}" aria-label="${t('ลบ')}">${ico('del', 18)}</button></td>` : ''}</tr>`;
   }).join('')}</tbody></table></div>`;
-  return `${head}<section class="card">${tabs}${body}${coach && list.length ? `<p class="muted">${t('ผู้เล่นเห็นเฉพาะข้อมูลติดต่อและไอดีของตัวเอง ผู้ช่วยโค้ชเห็นเบอร์โทรแต่ไม่เห็นไอดี/อีเมลของผู้อื่น')}</p>` : ''}</section>`;
+  return `${head}<section class="card">${tabs}${isPl && list.length ? `<div class="stat-legend">${STATUS.map((s) => `<span><i style="background:${STATUS_COLOR[s]}"></i>${t(ST_TH[s])}`+'</span>').join('')}</div>` : ''}${body}${coach && list.length ? `<p class="muted">${t('ผู้เล่นเห็นเฉพาะข้อมูลติดต่อและไอดีของตัวเอง ผู้ช่วยโค้ชเห็นเบอร์โทรแต่ไม่เห็นไอดี/อีเมลของผู้อื่น')}</p>` : ''}</section>`;
 }
 export const actions = {
   rosterTab(d) { R().tab = d.v; },
