@@ -339,7 +339,8 @@ async function deleteTeam(req, res) {
 export async function handle(req, res) {
   try {
     const url = new URL(req.url, 'http://x');
-    const path = url.pathname.replace(/^\/api/, '').replace(/\/+$/, '') || '/';
+    const viaRewrite = url.searchParams.get('__p');
+    const path = (viaRewrite !== null ? '/' + viaRewrite : url.pathname.replace(/^\/api/, '')).replace(/\/+$/, '') || '/';
     const method = req.method;
     if (method !== 'GET' && method !== 'HEAD') {
       const origin = req.headers.origin;
