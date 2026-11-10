@@ -29,9 +29,9 @@ export async function sendOtp(to, code) {
   }
   if (process.env.APPS_SCRIPT_URL && process.env.APPS_SCRIPT_KEY) {
     // Free relay: a Google Apps Script web app that sends through the owner's Gmail (see README).
-    const r = await fetch(process.env.APPS_SCRIPT_URL, {
+    const r = await fetch(String(process.env.APPS_SCRIPT_URL).trim(), {
       method: 'POST', redirect: 'follow', headers: { 'content-type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ key: process.env.APPS_SCRIPT_KEY, to, subject, html, name })
+      body: JSON.stringify({ key: String(process.env.APPS_SCRIPT_KEY).trim(), to, subject, html, name })
     });
     const txt = await r.text();
     let j = null; try { j = JSON.parse(txt); } catch { /* */ }
