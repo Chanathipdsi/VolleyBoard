@@ -63,7 +63,7 @@ export const forms = {
     a.busy = true; rerender();
     const r = await api('POST', '/auth/otp/request', { mode: a.mode, email: a.email, name: a.name, teamName: a.teamName, country: a.country, phone: a.phone }, { quiet401: true });
     a.busy = false;
-    if (!r.ok) { a.err = errText(r.data.error); if (r.data.error === 'too_soon') { a.step = 'otp'; a.wait = r.data.wait || 45; tick(); } rerender(); return; }
+    if (!r.ok) { a.err = errText(r.data.error) + (r.data.detail ? ' [' + r.data.detail + ']' : ''); if (r.data.error === 'too_soon') { a.step = 'otp'; a.wait = r.data.wait || 45; tick(); } rerender(); return; }
     a.step = 'otp'; a.code = ''; a.wait = 45; tick(); rerender();
   },
   async otpVerify() {

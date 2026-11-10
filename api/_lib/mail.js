@@ -34,8 +34,8 @@ export async function sendOtp(to, code) {
       body: JSON.stringify({ key: process.env.APPS_SCRIPT_KEY, to, subject, html, name })
     });
     const txt = await r.text();
-    let ok = false; try { ok = JSON.parse(txt).ok === true; } catch { /* */ }
-    if (!r.ok || !ok) throw fail(502, 'mail_failed', { detail: 'apps-script ' + r.status });
+    let j = null; try { j = JSON.parse(txt); } catch { /* */ }
+    if (!r.ok || !j || j.ok !== true) throw fail(502, 'mail_failed', { detail: 'apps-script ' + r.status + ' ' + (j ? String(j.error || '') : 'non-JSON reply: ' + txt.replace(/\s+/g, ' ').slice(0, 80)).slice(0, 160) });
     return;
   }
   if (process.env.MAIL_PROVIDER === 'console' && process.env.NODE_ENV !== 'production') {
